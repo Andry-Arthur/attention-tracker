@@ -92,7 +92,8 @@ AttentionTracker/
 ├── attention_log.json     # Logged attention spans (created when first span is logged)
 ├── face_landmarker.task   # MediaPipe model (downloaded on first run)
 ├── requirements.txt
-└── README.md
+├── README.md
+└── LICENSE
 ```
 
 ## How detection works
@@ -105,4 +106,6 @@ AttentionTracker/
 
 ## License
 
-Use and modify as you like. MediaPipe is under the Apache License 2.0.
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for the full text. You may use, copy, modify, and distribute it under those terms.
+
+The MediaPipe Face Landmarker component is under the Apache License 2.0.
