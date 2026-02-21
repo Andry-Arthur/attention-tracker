@@ -1,0 +1,18 @@
+{
+  "comment": "Tune these or run Calibrate to auto-set from your setup",
+  "camera_placement": "center",
+  "eye_ar_thresh": 0.28870727735169754,
+  "ear_blink_thresh": 0.26169984431138416,
+  "head_turn_frac": 0.1767273473739624,
+  "head_down_nose_y": 0.656041431427002,
+  "head_up_nose_y": 0.5335938096046448,
+  "mar_yawn_thresh": 0.35,
+  "yaw_margin": 0.08,
+  "history_len": 9,
+  "frames_attentive_to_switch": 4,
+  "frames_distracted_to_switch": 5,
+  "no_face_push_every_n": 3,
+  "ear_smooth_len": 3,
+  "debug_overlay": true,
+  "calibrated": true
+}
