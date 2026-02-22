@@ -57,29 +57,6 @@ You can build a standalone executable so end users don't need Python or any pack
 3. Output is in **`dist/AttentionTracker/`**. Run **`AttentionTracker.exe`** from that folder; distribute the whole folder.
 4. On first run next to the .exe, the app creates `attention_config.json` and may download `face_landmarker.task`. Logs are written there too.
 
-## Making a new release (after you've made changes)
-
-To ship an updated executable on GitHub so the release reflects your latest code:
-
-1. **Commit and push** your changes to your default branch (e.g. `main`):
-   ```bash
-   git add -A
-   git commit -m "Describe your changes"
-   git push
-   ```
-
-2. **Create a new release** on GitHub:
-   - Open your repo → **Releases** → **Create a new release**
-   - **Tag:** Choose a new version (e.g. `v1.0.1` for a small fix, `v1.1.0` for a new feature). Create the tag from the current branch (e.g. `main`).
-   - **Title:** e.g. `v1.0.1` or `v1.0.1 – Fix calibration`
-   - **Description:** Briefly say what changed. Remind users to download **AttentionTracker-Windows.zip** from Assets.
-
-3. Click **Publish release**. The **Release** workflow runs, builds the executable from that commit, and attaches **AttentionTracker-Windows.zip** to this release.
-
-4. In the **Actions** tab, wait for the workflow to finish. The zip will then appear under **Assets** on the release page.
-
-Each release is tied to a specific tag/commit; the attached zip is built from that commit, so the release always matches the code at that version.
-
 ## Usage
 
 1. Run the app:
