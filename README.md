@@ -2,6 +2,17 @@
 
 A desktop app that uses your webcam to detect when you're **paying attention** to the screen (face toward camera, eyes open, not looking down) and when you're **distracted**. It shows live stats and can log attention spans to a file.
 
+## Try the app (no install required)
+
+**Windows:** Download the latest release and run the app without installing Python or any dependencies.
+
+1. Go to [**Releases**](https://github.com/YOUR_USERNAME/AttentionTracker/releases) and open the latest release.
+2. Under **Assets**, download **AttentionTracker-Windows.zip**.
+3. Unzip it somewhere on your PC, then run **AttentionTracker.exe** from inside the folder (keep all files together).
+4. On first run, the app may download a small face-detection model and create a config file next to the exe. After that, click **Start** and allow webcam access to begin.
+
+Replace `YOUR_USERNAME` in the Releases link with the repo owner's username, or use the **Releases** link from your repo's GitHub page.
+
 ## Features
 
 - **Live camera preview** with attention state overlay (Attentive / Distracted)
@@ -14,11 +25,13 @@ A desktop app that uses your webcam to detect when you're **paying attention** t
 
 ## Requirements
 
-- Python 3.10+
 - Webcam
-- Windows / macOS / Linux
+- **To run the downloaded release:** Windows 10/11 (no Python required)
+- **To run from source:** Python 3.10+, Windows / macOS / Linux
 
-## Installation
+## Installation (run from source)
+
+If you prefer to run the app from source (e.g. to modify it or on macOS/Linux):
 
 1. Clone or download this project.
 2. Create a virtual environment (recommended):
@@ -45,6 +58,29 @@ You can build a standalone executable so end users don't need Python or any pack
 2. Build from the project root: `pyinstaller --noconfirm attention_tracker.spec` (or run `build.bat` on Windows)
 3. Output is in **`dist/AttentionTracker/`**. Run **`AttentionTracker.exe`** from that folder; distribute the whole folder.
 4. On first run next to the .exe, the app creates `attention_config.json` and may download `face_landmarker.task`. Logs are written there too.
+
+## Making a new release (after you've made changes)
+
+To ship an updated executable on GitHub so the release reflects your latest code:
+
+1. **Commit and push** your changes to your default branch (e.g. `main`):
+   ```bash
+   git add -A
+   git commit -m "Describe your changes"
+   git push
+   ```
+
+2. **Create a new release** on GitHub:
+   - Open your repo → **Releases** → **Create a new release**
+   - **Tag:** Choose a new version (e.g. `v1.0.1` for a small fix, `v1.1.0` for a new feature). Create the tag from the current branch (e.g. `main`).
+   - **Title:** e.g. `v1.0.1` or `v1.0.1 – Fix calibration`
+   - **Description:** Briefly say what changed. Remind users to download **AttentionTracker-Windows.zip** from Assets.
+
+3. Click **Publish release**. The **Release** workflow runs, builds the executable from that commit, and attaches **AttentionTracker-Windows.zip** to this release.
+
+4. In the **Actions** tab, wait for the workflow to finish. The zip will then appear under **Assets** on the release page.
+
+Each release is tied to a specific tag/commit; the attached zip is built from that commit, so the release always matches the code at that version.
 
 ## Usage
 
