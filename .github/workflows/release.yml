@@ -1,0 +1,40 @@
+# Build Windows executable and attach to GitHub Release when you publish a release.
+# Usage: Create a release on GitHub (e.g. v1.0.0), then this workflow runs and uploads
+#        AttentionTracker-Windows.zip as an asset.
+
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build executable
+        run: pyinstaller --noconfirm attention_tracker.spec
+
+      - name: Zip artifact
+        run: |
+          Compress-Archive -Path "dist\AttentionTracker\*" -DestinationPath "AttentionTracker-Windows.zip"
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AttentionTracker-Windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -7,10 +7,15 @@ calibration persist across runs.
 
 import json
 import os
+import sys
 
-# Path to config file (next to the main script)
-_CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(_CONFIG_DIR, "attention_config.json")
+# When built with PyInstaller, write next to the .exe; otherwise next to the package
+if getattr(sys, "frozen", False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+CONFIG_PATH = os.path.join(BASE_DIR, "attention_config.json")
 
 DEFAULT_CONFIG = {
     "camera_placement": "center",

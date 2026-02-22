@@ -2,3 +2,4 @@ opencv-python>=4.8.0
 mediapipe>=0.10.31
 numpy>=1.26.0
 pillow>=9.0.0
+matplotlib>=3.7.0

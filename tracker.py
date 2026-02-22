@@ -21,28 +21,29 @@ from mediapipe.tasks import python as mp_tasks
 from mediapipe.tasks.python import vision
 from tkinter import messagebox
 
-from config import load_config, save_config, DEFAULT_CONFIG, CONFIG_PATH
+from config import load_config, save_config, DEFAULT_CONFIG, CONFIG_PATH, BASE_DIR
 
 
-# Model download URL; file is stored next to the script
+# Model download URL; file is stored in BASE_DIR (next to exe when frozen)
 FACE_LANDMARKER_MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/face_landmarker/"
     "face_landmarker/float16/1/face_landmarker.task"
 )
-_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_FILE_PATH = os.path.join(_SCRIPT_DIR, "attention_log.json")
+LOG_FILE_PATH = os.path.join(BASE_DIR, "attention_log.json")
+SESSIONS_FILE_PATH = os.path.join(BASE_DIR, "attention_sessions.json")
+SAMPLE_INTERVAL_SEC = 10  # time-series sample every N seconds for analytics charts
 
 
 def ensure_face_landmarker_model():
     """Return path to face_landmarker.task, downloading if missing."""
-    path = os.path.join(_SCRIPT_DIR, "face_landmarker.task")
+    path = os.path.join(BASE_DIR, "face_landmarker.task")
     if not os.path.isfile(path):
         try:
             urllib.request.urlretrieve(FACE_LANDMARKER_MODEL_URL, path)
         except Exception as e:
             raise FileNotFoundError(
                 f"Could not download face_landmarker.task. "
-                f"Download manually from {FACE_LANDMARKER_MODEL_URL} and place in {_SCRIPT_DIR}"
+                f"Download manually from {FACE_LANDMARKER_MODEL_URL} and place in {BASE_DIR}"
             ) from e
     return path
 
@@ -83,6 +84,9 @@ class AttentionTracker:
         self.total_distracted_time = 0
         self.distracted_count = 0
         self.session_data = []
+        self._session_events = []   # {t, from_state, to_state, span_sec?}
+        self._session_samples = []  # {elapsed_sec, attentive_sec, distracted_sec, focus_pct}
+        self._last_sample_time = None
 
         self.latest_frame = None
         self._ear_history = deque(maxlen=max(1, getattr(self, "_ear_smooth_len", 3)))
@@ -243,14 +247,21 @@ class AttentionTracker:
                     self.calibrating = False
                     self._calibration_start = None
 
+            prev_state = self.state
             if self.state == "IDLE" and new_state == "ATTENTIVE":
                 self.state = "ATTENTIVE"
                 self.attention_start_time = current_time
                 self.session_start_time = current_time
+                self._session_events.append({"t": current_time, "from_state": "IDLE", "to_state": "ATTENTIVE"})
+                self._last_sample_time = current_time
             elif self.state == "ATTENTIVE":
                 if new_state == "DISTRACTED":
-                    self.state = "DISTRACTED"
                     span = current_time - self.attention_start_time
+                    self._session_events.append({
+                        "t": current_time, "from_state": "ATTENTIVE", "to_state": "DISTRACTED",
+                        "span_sec": round(span, 2),
+                    })
+                    self.state = "DISTRACTED"
                     if span > 1:
                         self.current_attention_span = span
                         self.distracted_count += 1
@@ -263,8 +274,26 @@ class AttentionTracker:
                 if new_state == "ATTENTIVE":
                     self.state = "ATTENTIVE"
                     self.attention_start_time = current_time
+                    self._session_events.append({"t": current_time, "from_state": "DISTRACTED", "to_state": "ATTENTIVE"})
                 else:
                     self.total_distracted_time += 0.1
+
+            # Time-series sample every SAMPLE_INTERVAL_SEC for charts
+            if self.session_start_time is not None and self._last_sample_time is not None:
+                if current_time - self._last_sample_time >= SAMPLE_INTERVAL_SEC:
+                    elapsed = current_time - self.session_start_time
+                    att = self.total_attentive_time
+                    if self.state == "ATTENTIVE" and self.attention_start_time:
+                        att += current_time - self.attention_start_time
+                    dist = elapsed - att
+                    pct = (att / elapsed * 100) if elapsed > 0 else 0
+                    self._session_samples.append({
+                        "elapsed_sec": round(elapsed, 1),
+                        "attentive_sec": round(att, 1),
+                        "distracted_sec": round(dist, 1),
+                        "focus_pct": round(pct, 1),
+                    })
+                    self._last_sample_time = current_time
 
             display = frame.copy()
             color = (
@@ -296,6 +325,37 @@ class AttentionTracker:
 
         self.cap.release()
         self.latest_frame = None
+        self._save_session()
+
+    def _save_session(self):
+        """Append current session summary to sessions file (one JSON line)."""
+        if self.session_start_time is None:
+            return
+        session_end = time.time()
+        elapsed = session_end - self.session_start_time
+        att = self.total_attentive_time
+        dist = elapsed - att
+        pct = (att / elapsed * 100) if elapsed > 0 else 0
+        spans_sec = [e["attention_span_seconds"] for e in self.session_data]
+        session_record = {
+            "session_start_iso": datetime.fromtimestamp(self.session_start_time).isoformat(),
+            "session_end_iso": datetime.fromtimestamp(session_end).isoformat(),
+            "duration_sec": round(elapsed, 1),
+            "attentive_sec": round(att, 1),
+            "distracted_sec": round(dist, 1),
+            "focus_pct": round(pct, 1),
+            "distraction_count": self.distracted_count,
+            "spans_sec": spans_sec,
+            "avg_span_sec": round(sum(spans_sec) / len(spans_sec), 1) if spans_sec else 0,
+            "max_span_sec": round(max(spans_sec), 1) if spans_sec else 0,
+            "samples": self._session_samples,
+            "events_count": len(self._session_events),
+        }
+        try:
+            with open(SESSIONS_FILE_PATH, "a", encoding="utf-8") as f:
+                f.write(json.dumps(session_record) + "\n")
+        except OSError:
+            pass
 
     def log_attention_span(self, span):
         """Append one attention-span entry to the log file."""
@@ -346,6 +406,25 @@ class AttentionTracker:
             "attention_percentage": round(percentage, 1),
         }
 
+    def get_analytics(self):
+        """Return stats plus analytics for charts: avg/max span, streak, spans list, time-series samples."""
+        stats = self.get_stats()
+        spans_sec = [e["attention_span_seconds"] for e in self.session_data]
+        avg_span = round(sum(spans_sec) / len(spans_sec), 1) if spans_sec else 0
+        max_span = round(max(spans_sec), 1) if spans_sec else 0
+        if self.state == "ATTENTIVE" and self.attention_start_time is not None:
+            current_streak = round(time.time() - self.attention_start_time, 1)
+        else:
+            current_streak = 0
+        stats["avg_span_sec"] = avg_span
+        stats["max_span_sec"] = max_span
+        stats["current_streak_sec"] = current_streak
+        stats["longest_streak_sec"] = max_span
+        stats["spans_sec"] = spans_sec
+        stats["samples"] = list(self._session_samples)
+        stats["events_count"] = len(self._session_events)
+        return stats
+
     def start(self):
         """Start the capture/processing loop in a background thread."""
         if not self.running:
@@ -369,6 +448,9 @@ class AttentionTracker:
         self.total_distracted_time = 0
         self.distracted_count = 0
         self.session_data = []
+        self._session_events.clear()
+        self._session_samples.clear()
+        self._last_sample_time = None
         self._raw_attention_history.clear()
         self._ear_history.clear()
 

@@ -6,10 +6,11 @@ A desktop app that uses your webcam to detect when you're **paying attention** t
 
 - **Live camera preview** with attention state overlay (Attentive / Distracted)
 - **Session statistics**: total time, attentive time, distracted time, current span, focus %
+- **Analytics tab**: insights (avg/max span, distractions, focus %, current & longest streak) and **charts** — focus % over time (sampled every 10s) and attention-span duration (bar chart of last 20 spans). Requires `matplotlib`.
 - **Calibration**: 5-second “look at screen” calibration to auto-tune thresholds for your setup
 - **Configurable thresholds** via `attention_config.json` (or run Calibrate once)
 - **Optional debug overlay**: EAR, MAR, nose position, raw decision on the video
-- **Logging**: attention spans appended to `attention_log.json` (one JSON object per line)
+- **Logging**: attention spans to `attention_log.json`; full session summaries (with samples and metrics) to `attention_sessions.json` (one JSON line per session)
 
 ## Requirements
 
@@ -36,6 +37,38 @@ A desktop app that uses your webcam to detect when you're **paying attention** t
 
 4. On first run, the app will download the MediaPipe face landmarker model (`face_landmarker.task`) into the project folder if it’s missing.
 
+## Building an executable (for distribution)
+
+You can build a standalone executable so end users don't need Python or any packages installed.
+
+1. Install dependencies and PyInstaller: `pip install -r requirements.txt` then `pip install pyinstaller`
+2. Build from the project root: `pyinstaller --noconfirm attention_tracker.spec` (or run `build.bat` on Windows)
+3. Output is in **`dist/AttentionTracker/`**. Run **`AttentionTracker.exe`** from that folder; distribute the whole folder.
+4. On first run next to the .exe, the app creates `attention_config.json` and may download `face_landmarker.task`. Logs are written there too.
+
+## Releasing on GitHub
+
+To publish the executable as a **GitHub Release** so users can download it:
+
+### Option A: Automatic (recommended)
+
+1. Push your code to a GitHub repository.
+2. **Create a release** on GitHub:
+   - Repo → **Releases** → **Create a new release**
+   - Choose a **tag** (e.g. `v1.0.0`) and create it
+   - Add release title and notes, then click **Publish release**
+3. The **Release** workflow (`.github/workflows/release.yml`) runs on the GitHub runner: it builds the Windows executable, zips the `dist/AttentionTracker/` folder, and uploads **AttentionTracker-Windows.zip** to that release.
+4. After the workflow finishes (check the **Actions** tab), the zip appears under **Assets** on the release page. Users download the zip, unzip it, and run `AttentionTracker.exe`.
+
+### Option B: Manual upload
+
+1. Build locally: `pyinstaller --noconfirm attention_tracker.spec`
+2. Zip the output: compress the contents of `dist/AttentionTracker/` into one zip (e.g. `AttentionTracker-Windows.zip`). On Windows: select all files inside `dist\AttentionTracker\`, right‑click → **Send to** → **Compressed (zipped) folder**.
+3. On GitHub: **Releases** → **Draft a new release** → pick or create a tag (e.g. `v1.0.0`), add title/notes, then under **Assets** click **Attach files** and upload the zip.
+4. Publish the release.
+
+**Note:** The automatic workflow builds on Windows only. For macOS/Linux executables, you’d add more jobs or build those locally and attach them to the same release.
+
 ## Usage
 
 1. Run the app:
@@ -45,19 +78,22 @@ A desktop app that uses your webcam to detect when you're **paying attention** t
    ```
 
 2. **Start** — begins webcam capture and attention detection. The video appears on the left; controls and stats on the right.
-3. **Stop** — stops capture and keeps the last stats visible.
+3. **Stop** — stops capture, keeps the last stats visible, and saves a session summary to `attention_sessions.json`.
 4. **Reset** — clears session stats and smoothing state.
 5. **Calibrate** — run this while tracking is active. Look at the screen for 5 seconds; the app will set thresholds from your typical pose and save them to `attention_config.json`.
-6. **Debug overlay** — checkbox toggles EAR, MAR, nose position and raw decision on the video (useful for tuning).
+6. **Analytics** tab — view insights (avg/max attention span, current and longest streak, focus %) and charts (focus over time, span durations). Click “Refresh charts” or switch to the tab to update.
+7. **Debug overlay** — checkbox toggles EAR, MAR, nose position and raw decision on the video (useful for tuning).
 
 ## Layout
 
 - **Left**: Camera preview (scaled to fit, max 640×360). State (Attentive / Distracted) is drawn on the frame.
-- **Right**: Status, session stats, Start/Stop/Reset/Calibrate, Debug overlay, and a short hint. Everything stays visible without fullscreen.
+- **Right**: Tabs **Live** and **Analytics**.
+  - **Live**: Status, session stats, Start/Stop/Reset/Calibrate, Debug overlay, and a short hint.
+  - **Analytics**: Insights (avg span, max span, distractions, focus %, current streak, longest streak), plus charts — focus % over time (every 10s) and attention-span durations (last 20 spans). Everything stays visible without fullscreen.
 
 ## Configuration
 
-`attention_config.json` in the project directory holds all thresholds. You can edit it by hand or use **Calibrate** to fill it from your setup. Main keys:
+`attention_config.json` (in the project directory when running from source, or next to the .exe when running the built app) holds all thresholds. You can edit it by hand or use **Calibrate** to fill it from your setup. Main keys:
 
 | Key | Description |
 |-----|-------------|
@@ -72,13 +108,11 @@ A desktop app that uses your webcam to detect when you're **paying attention** t
 
 After calibration, `calibrated` is set to `true` and the thresholds above are updated.
 
-## Log file
+## Data and log files
 
-When you switch from Attentive to Distracted, the last “attention span” (in seconds) is appended to `attention_log.json` as one JSON object per line, e.g.:
-
-```json
-{"timestamp": "2025-02-21T12:00:00", "attention_span_seconds": 45.2, "duration_human_readable": "45s"}
-```
+- **attention_log.json** — When you switch from Attentive to Distracted, the last attention span (in seconds) is appended as one JSON object per line, e.g.  
+  `{"timestamp": "2025-02-21T12:00:00", "attention_span_seconds": 45.2, "duration_human_readable": "45s"}`.
+- **attention_sessions.json** — When you click **Stop**, a full session record is appended (one JSON line per session) with: `session_start_iso`, `session_end_iso`, `duration_sec`, `attentive_sec`, `distracted_sec`, `focus_pct`, `distraction_count`, `spans_sec`, `avg_span_sec`, `max_span_sec`, `samples` (time-series of focus every 10s), and `events_count`. Use this for deeper analysis or custom dashboards.
 
 ## Project structure
 
@@ -88,9 +122,12 @@ AttentionTracker/
 ├── tracker.py             # Attention detection and capture loop
 ├── gui.py                 # Tkinter GUI (side-by-side layout)
 ├── config.py              # Load/save attention_config.json
-├── attention_config.json  # Thresholds (created/updated by app or Calibrate)
-├── attention_log.json     # Logged attention spans (created when first span is logged)
-├── face_landmarker.task   # MediaPipe model (downloaded on first run)
+├── attention_config.json   # Thresholds (created/updated by app or Calibrate)
+├── attention_log.json      # Logged attention spans (created when first span is logged)
+├── attention_sessions.json # Session summaries with metrics and samples (on Stop)
+├── face_landmarker.task    # MediaPipe model (downloaded on first run)
+├── attention_tracker.spec  # PyInstaller spec for building the executable
+├── build.bat               # Windows build script
 ├── requirements.txt
 ├── README.md
 └── LICENSE
@@ -106,6 +143,6 @@ AttentionTracker/
 
 ## License
 
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for the full text. You may use, copy, modify, and distribute it under those terms.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — a copyleft license. You may use, modify, and distribute it under the same license; derivative works must also be GPL-3.0 and source must be made available. See [LICENSE](LICENSE) and <https://www.gnu.org/licenses/gpl-3.0.html> for the full terms.
 
 The MediaPipe Face Landmarker component is under the Apache License 2.0.

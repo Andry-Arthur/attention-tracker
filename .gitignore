@@ -2,3 +2,7 @@
 .vscode/
 .cursor/
 __pycache__/
+# PyInstaller
+build/
+dist/
+*.manifest
