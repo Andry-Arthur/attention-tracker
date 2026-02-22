@@ -6,12 +6,10 @@ A desktop app that uses your webcam to detect when you're **paying attention** t
 
 **Windows:** Download the latest release and run the app without installing Python or any dependencies.
 
-1. Go to [**Releases**](https://github.com/YOUR_USERNAME/AttentionTracker/releases) and open the latest release.
+1. Go to [**Releases**](https://github.com/Andry-Arthur/attention-tracker/releases/) and open the latest release.
 2. Under **Assets**, download **AttentionTracker-Windows.zip**.
 3. Unzip it somewhere on your PC, then run **AttentionTracker.exe** from inside the folder (keep all files together).
 4. On first run, the app may download a small face-detection model and create a config file next to the exe. After that, click **Start** and allow webcam access to begin.
-
-Replace `YOUR_USERNAME` in the Releases link with the repo owner's username, or use the **Releases** link from your repo's GitHub page.
 
 ## Features
 
