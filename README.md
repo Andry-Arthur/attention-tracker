@@ -46,29 +46,6 @@ You can build a standalone executable so end users don't need Python or any pack
 3. Output is in **`dist/AttentionTracker/`**. Run **`AttentionTracker.exe`** from that folder; distribute the whole folder.
 4. On first run next to the .exe, the app creates `attention_config.json` and may download `face_landmarker.task`. Logs are written there too.
 
-## Releasing on GitHub
-
-To publish the executable as a **GitHub Release** so users can download it:
-
-### Option A: Automatic (recommended)
-
-1. Push your code to a GitHub repository.
-2. **Create a release** on GitHub:
-   - Repo → **Releases** → **Create a new release**
-   - Choose a **tag** (e.g. `v1.0.0`) and create it
-   - Add release title and notes, then click **Publish release**
-3. The **Release** workflow (`.github/workflows/release.yml`) runs on the GitHub runner: it builds the Windows executable, zips the `dist/AttentionTracker/` folder, and uploads **AttentionTracker-Windows.zip** to that release.
-4. After the workflow finishes (check the **Actions** tab), the zip appears under **Assets** on the release page. Users download the zip, unzip it, and run `AttentionTracker.exe`.
-
-### Option B: Manual upload
-
-1. Build locally: `pyinstaller --noconfirm attention_tracker.spec`
-2. Zip the output: compress the contents of `dist/AttentionTracker/` into one zip (e.g. `AttentionTracker-Windows.zip`). On Windows: select all files inside `dist\AttentionTracker\`, right‑click → **Send to** → **Compressed (zipped) folder**.
-3. On GitHub: **Releases** → **Draft a new release** → pick or create a tag (e.g. `v1.0.0`), add title/notes, then under **Assets** click **Attach files** and upload the zip.
-4. Publish the release.
-
-**Note:** The automatic workflow builds on Windows only. For macOS/Linux executables, you’d add more jobs or build those locally and attach them to the same release.
-
 ## Usage
 
 1. Run the app:
